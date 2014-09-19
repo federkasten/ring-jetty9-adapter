@@ -80,16 +80,16 @@ Derived from ring.adapter.jetty"
   (proxy [WebSocketAdapter] []
     (onWebSocketConnect [^Session session]
       (proxy-super onWebSocketConnect session)
-      (on-connect this))
+      (@(resolve on-connect) this))
     (onWebSocketError [^Throwable e]
-      (on-error this e))
+      (@(resolve on-error) this e))
     (onWebSocketText [^String message]
-      (on-text this message))
+      (@(resolve on-text) this message))
     (onWebSocketClose [statusCode ^String reason]
       (proxy-super onWebSocketClose statusCode reason)
-      (on-close this statusCode reason))
+      (@(resolve on-close) this statusCode reason))
     (onWebSocketBinary [^bytes payload offset len]
-      (on-bytes this payload offset len))))
+      (@(resolve on-bytes) this payload offset len))))
 
 (defn- reify-ws-creator
   [ws-fns]

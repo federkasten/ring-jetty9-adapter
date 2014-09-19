@@ -8,7 +8,7 @@
                   :exclusions [javax.servlet/servlet-api]]
                  [ring/ring-servlet "1.3.0"
                   :exclusions [javax.servlet/servlet-api]]
-                 [org.eclipse.jetty/jetty-server "9.2.1.v20140609"]
-                 [org.eclipse.jetty.websocket/websocket-server "9.2.1.v20140609"]
-                 [org.eclipse.jetty.websocket/websocket-servlet "9.2.1.v20140609"]]
+                 [org.eclipse.jetty/jetty-server "9.2.3.v20140905"]
+                 [org.eclipse.jetty.websocket/websocket-server "9.2.3.v20140905"]
+                 [org.eclipse.jetty.websocket/websocket-servlet "9.2.3.v20140905"]]
   :deploy-repositories {"releases" :clojars})
