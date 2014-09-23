@@ -20,32 +20,26 @@
 (defn- do-nothing [& args])
 
 (defn- proxy-ws-adapter
-  [{:as ws-fns
-    :keys [on-connect on-error on-text on-close on-bytes]
-    :or {on-connect do-nothing
-         on-error do-nothing
-         on-text do-nothing
-         on-close do-nothing
-         on-bytes do-nothing}}]
+  [ws-handler]
   (proxy [WebSocketAdapter] []
     (onWebSocketConnect [^Session session]
       (proxy-super onWebSocketConnect session)
-      (@(resolve on-connect) this))
+      ((:on-connect @(resolve ws-handler)) this))
     (onWebSocketError [^Throwable e]
-      (@(resolve on-error) this e))
+      ((:on-error @(resolve ws-handler)) this e))
     (onWebSocketText [^String message]
-      (@(resolve on-text) this message))
+      ((:on-text @(resolve ws-handler)) this message))
     (onWebSocketClose [statusCode ^String reason]
       (proxy-super onWebSocketClose statusCode reason)
-      (@(resolve on-close) this statusCode reason))
+      ((:on-close @(resolve ws-handler)) this statusCode reason))
     (onWebSocketBinary [^bytes payload offset len]
-      (@(resolve on-bytes) this payload offset len))))
+      ((:on-bytes @(resolve ws-handler)) this payload offset len))))
 
 (defn- reify-ws-creator
-  [ws-fns]
+  [ws-handler]
   (reify WebSocketCreator
     (createWebSocket [this _ _]
-      (proxy-ws-adapter ws-fns))))
+      (proxy-ws-adapter ws-handler))))
 
 (defprotocol RequestMapDecoder
   (build-request-map [r]))
@@ -69,14 +63,14 @@
 
 (defn- proxy-ws-handler
   "Returns a Jetty websocket handler"
-  [ws-fns {:as options
-           :keys [ws-max-idle-time]
-           :or {ws-max-idle-time 500000}}]
+  [ws-handler {:as options
+               :keys [ws-max-idle-time]
+               :or {ws-max-idle-time 500000}}]
   (proxy [WebSocketHandler] []
     (configure [^WebSocketServletFactory factory]
       (-> (.getPolicy factory)
           (.setIdleTimeout ws-max-idle-time))
-      (.setCreator factory (reify-ws-creator ws-fns)))))
+      (.setCreator factory (reify-ws-creator ws-handler)))))
 
 (defn- proxy-handler
   "Returns an Jetty Handler implementation for the given Ring handler."
