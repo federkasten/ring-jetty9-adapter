@@ -1,6 +1,6 @@
 (ns ring.adapter.jetty9
   "Adapter for the Jetty 9 server, with websocket support.
-Derived from ring.adapter.jetty"
+  Derived from ring.adapter.jetty"
   (:import (org.eclipse.jetty.server
             Handler Server Request ServerConnector
             HttpConfiguration HttpConnectionFactory SslConnectionFactory ConnectionFactory)
@@ -13,59 +13,9 @@ Derived from ring.adapter.jetty"
            (org.eclipse.jetty.websocket.servlet WebSocketServletFactory WebSocketCreator ServletUpgradeRequest
                                                 ServletUpgradeResponse)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
-           (org.eclipse.jetty.websocket.api WebSocketAdapter Session UpgradeRequest)
-           (java.nio ByteBuffer)
-           (clojure.lang IFn))
+           (org.eclipse.jetty.websocket.api WebSocketAdapter Session UpgradeRequest))
   (:require [ring.util.servlet :as servlet]
             [clojure.string :as string]))
-
-(defprotocol WebSocketProtocol
-  (send! [this msg])
-  (close! [this])
-  (remote-addr [this])
-  (idle-timeout! [this ms]))
-
-(defprotocol WebSocketSend
-  (-send! [x ws] "How to encode content sent to the WebSocket clients"))
-
-(extend-protocol WebSocketSend
-
-  (Class/forName "[B")
-  (-send! [ba ws]
-    (-send! (ByteBuffer/wrap ba) ws))
-
-  ByteBuffer
-  (-send! [bb ws]
-    (-> ws .getRemote (.sendBytes ^ByteBuffer bb)))
-
-  String
-  (-send! [s ws]
-    (-> ws .getRemote (.sendString ^String s)))
-
-  IFn
-  (-send! [f ws]
-    (-> ws .getRemote f))
-
-  Object
-  (-send! [this ws]
-    (-> ws .getRemote (.sendString (str this))))
-
-  ;; "nil" could PING?
-  ;; nil
-  ;; (-send! [this ws] ()
-
-  )
-
-(extend-protocol WebSocketProtocol
-  WebSocketAdapter
-  (send! [this msg]
-    (-send! msg this))
-  (close! [this]
-    (.. this (getSession) (close)))
-  (remote-addr [this]
-    (.. this (getSession) (getRemoteAddress)))
-  (idle-timeout! [this ms]
-    (.. this (getSession) (setIdleTimeout ^long ms))))
 
 (defn- do-nothing [& args])
 
@@ -113,9 +63,9 @@ Derived from ring.adapter.jetty"
      :host (.getHost request)
      :request-method (keyword (.toLowerCase (.getMethod request)))
      :headers (reduce(fn [m [k v]]
-                 (assoc m (string/lower-case k) (string/join "," v)))
-               {}
-               (.getHeaders request))}))
+                       (assoc m (string/lower-case k) (string/join "," v)))
+                     {}
+                     (.getHeaders request))}))
 
 (defn- proxy-ws-handler
   "Returns a Jetty websocket handler"
@@ -227,31 +177,31 @@ Derived from ring.adapter.jetty"
 
 (defn ^Server run-jetty
   "Start a Jetty webserver to serve the given handler according to the
-supplied options:
+  supplied options:
 
-:port - the port to listen on (defaults to 80)
-:host - the hostname to listen on
-:join? - blocks the thread until server ends (defaults to true)
-:daemon? - use daemon threads (defaults to false)
-:ssl? - allow connections over HTTPS
-:ssl-port - the SSL port to listen on (defaults to 443, implies :ssl?)
-:keystore - the keystore to use for SSL connections
-:keystore-type - the format of keystore
-:key-password - the password to the keystore
-:truststore - a truststore to use for SSL connections
-:truststore-type - the format of trust store
-:trust-password - the password to the truststore
-:max-threads - the maximum number of threads to use (default 50)
-:max-idle-time  - the maximum idle time in milliseconds for a connection (default 200000)
-:ws-max-idle-time  - the maximum idle time in milliseconds for a websocket connection (default 500000)
-:client-auth - SSL client certificate authenticate, may be set to :need, :want or :none (defaults to :none)
-:websockets - a map from context path to a map of handler fns:
+  :port - the port to listen on (defaults to 80)
+  :host - the hostname to listen on
+  :join? - blocks the thread until server ends (defaults to true)
+  :daemon? - use daemon threads (defaults to false)
+  :ssl? - allow connections over HTTPS
+  :ssl-port - the SSL port to listen on (defaults to 443, implies :ssl?)
+  :keystore - the keystore to use for SSL connections
+  :keystore-type - the format of keystore
+  :key-password - the password to the keystore
+  :truststore - a truststore to use for SSL connections
+  :truststore-type - the format of trust store
+  :trust-password - the password to the truststore
+  :max-threads - the maximum number of threads to use (default 50)
+  :max-idle-time  - the maximum idle time in milliseconds for a connection (default 200000)
+  :ws-max-idle-time  - the maximum idle time in milliseconds for a websocket connection (default 500000)
+  :client-auth - SSL client certificate authenticate, may be set to :need, :want or :none (defaults to :none)
+  :websockets - a map from context path to a map of handler fns:
 
- {\"/context\" {:on-connect #(create-fn %)                ; ^Session ws-session
-                :on-text   #(text-fn % %2 %3 %4)         ; ^Session ws-session message
-                :on-bytes  #(binary-fn % %2 %3 %4 %5 %6) ; ^Session ws-session payload offset len
-                :on-close  #(close-fn % %2 %3 %4)        ; ^Session ws-session statusCode reason
-                :on-error  #(error-fn % %2 %3)}}         ; ^Session ws-session e"
+  {\"/context\" {:on-connect #(create-fn %)                ; ^Session ws-session
+  :on-text   #(text-fn % %2 %3 %4)         ; ^Session ws-session message
+  :on-bytes  #(binary-fn % %2 %3 %4 %5 %6) ; ^Session ws-session payload offset len
+  :on-close  #(close-fn % %2 %3 %4)        ; ^Session ws-session statusCode reason
+  :on-error  #(error-fn % %2 %3)}}         ; ^Session ws-session e"
   [handler {:as options
             :keys [max-threads websockets configurator join?]
             :or {max-threads 50
